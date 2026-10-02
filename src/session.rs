@@ -1,9 +1,9 @@
 // ============================================
-// RPC Session
+// RPC Session (Corrected for discord_social_rpc 0.1.2)
 // ============================================
 
 use discord_social_rpc::{
-    Activity, ActivityType, Assets, DiscordSocialRpc, DiscordRpcClient, Timestamps,
+    Activity, ActivityType, Assets, DiscordRpcClient, DiscordSocialRpc, Timestamps,
 };
 use serde_json::Value;
 
@@ -19,7 +19,8 @@ impl RpcSession {
         let app_id = std::env::var("DISCORD_CLIENT_ID")
             .map_err(|_| "DISCORD_CLIENT_ID env var not set".to_string())?;
 
-        let factory = DiscordSocialRpc::new(&app_id).map_err(|e| format!("Factory error: {}", e))?;
+        let factory = DiscordSocialRpc::new(&app_id)
+            .map_err(|e| format!("Factory error: {}", e))?;
 
         let client = factory
             .create_new_client(token)
@@ -49,30 +50,31 @@ impl RpcSession {
             .and_then(|v| v.as_str())
             .unwrap_or("PLAYING");
 
-        let mut activity = Activity::new().name(&name);
+        // Correct builder API: .set_name(), .set_state(), etc.
+        let mut activity = Activity::new().set_name(&name);
 
         if let Some(state) = config.get("state").and_then(|v| v.as_str()) {
             if !state.is_empty() {
-                activity = activity.state(state);
+                activity = activity.set_state(state);
             }
         }
 
         if let Some(details) = config.get("details").and_then(|v| v.as_str()) {
             if !details.is_empty() {
-                activity = activity.details(details);
+                activity = activity.set_details(details);
             }
         }
 
-        // Activity type
-        activity = activity.activity_type(match activity_type {
-            "STREAMING" => ActivityType::Streaming,
+        // Map config type to ActivityType enum (Streaming not available in this crate)
+        activity = activity.set_activity_type(match activity_type {
+            "STREAMING" => ActivityType::Playing, // fallback
             "LISTENING" => ActivityType::Listening,
             "WATCHING" => ActivityType::Watching,
             "COMPETING" => ActivityType::Competing,
             _ => ActivityType::Playing,
         });
 
-        // Images
+        // Images — correct API: .large_image(), .large_text(), etc. (without set_)
         let large_image = config
             .get("largeImage")
             .and_then(|v| v.as_str())
@@ -106,10 +108,10 @@ impl RpcSession {
                 }
             }
 
-            activity = activity.assets(assets);
+            activity = activity.set_assets(assets);
         }
 
-        // Timer
+        // Timer — correct API: Timestamps::new().start(i64 milliseconds)
         if config
             .get("startTimestamp")
             .and_then(|v| v.as_bool())
@@ -118,7 +120,7 @@ impl RpcSession {
             let now_ms = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
-                .as_millis() as u64;
+                .as_millis() as i64;
 
             activity = activity.timestamps(Timestamps::new().start(now_ms));
         }
@@ -144,8 +146,8 @@ impl RpcSession {
     }
 
     pub fn set_status(&mut self, _status: &str) -> Result<(), String> {
-        // Presence status changes ke liye social SDK me alag method
-        // Abhi ke liye placeholder — presence status OAuth2 flow me handle hota hai
+        // Presence status changes ke liye alag method
+        // Abhi ke liye placeholder
         Ok(())
     }
 
