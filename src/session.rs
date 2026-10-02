@@ -65,16 +65,16 @@ impl RpcSession {
             }
         }
 
-        // Map config type to ActivityType enum (Streaming not available in this crate)
+        // Map config type to ActivityType enum
         activity = activity.set_activity_type(match activity_type {
-            "STREAMING" => ActivityType::Playing, // fallback
+            "STREAMING" => ActivityType::Playing, // fallback (Streaming not in this crate)
             "LISTENING" => ActivityType::Listening,
             "WATCHING" => ActivityType::Watching,
             "COMPETING" => ActivityType::Competing,
             _ => ActivityType::Playing,
         });
 
-        // Images — correct API: .large_image(), .large_text(), etc. (without set_)
+        // Images — CORRECT API: .large_image(url) takes an argument!
         let large_image = config
             .get("largeImage")
             .and_then(|v| v.as_str())
@@ -89,29 +89,29 @@ impl RpcSession {
             let mut assets = Assets::new();
 
             if !large_image.is_empty() {
-                assets = assets.large_image(large_image);
+                assets = assets.large_image(large_image); // ← ARGUMENT PASS KARO
             }
 
             if let Some(large_text) = config.get("largeText").and_then(|v| v.as_str()) {
                 if !large_text.is_empty() {
-                    assets = assets.large_text(large_text);
+                    assets = assets.large_text(large_text); // ← ARGUMENT PASS KARO
                 }
             }
 
             if !small_image.is_empty() {
-                assets = assets.small_image(small_image);
+                assets = assets.small_image(small_image); // ← ARGUMENT PASS KARO
             }
 
             if let Some(small_text) = config.get("smallText").and_then(|v| v.as_str()) {
                 if !small_text.is_empty() {
-                    assets = assets.small_text(small_text);
+                    assets = assets.small_text(small_text); // ← ARGUMENT PASS KARO
                 }
             }
 
             activity = activity.set_assets(assets);
         }
 
-        // Timer — correct API: Timestamps::new().start(i64 milliseconds)
+        // Timer — CORRECT API: .start(now_ms) takes an argument (i64)
         if config
             .get("startTimestamp")
             .and_then(|v| v.as_bool())
@@ -122,7 +122,7 @@ impl RpcSession {
                 .unwrap()
                 .as_millis() as i64;
 
-            activity = activity.timestamps(Timestamps::new().start(now_ms));
+            activity = activity.timestamps(Timestamps::new().start(now_ms)); // ← ARGUMENT PASS KARO
         }
 
         // Set activity
@@ -146,8 +146,6 @@ impl RpcSession {
     }
 
     pub fn set_status(&mut self, _status: &str) -> Result<(), String> {
-        // Presence status changes ke liye alag method
-        // Abhi ke liye placeholder
         Ok(())
     }
 
