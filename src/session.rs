@@ -1,5 +1,5 @@
 // ============================================
-// RPC Session (Corrected for discord_social_rpc 0.1.2)
+// RPC Session — Corrected for discord_social_rpc 0.1.2
 // ============================================
 
 use discord_social_rpc::{
@@ -50,7 +50,6 @@ impl RpcSession {
             .and_then(|v| v.as_str())
             .unwrap_or("PLAYING");
 
-        // Correct builder API: .set_name(), .set_state(), etc.
         let mut activity = Activity::new().set_name(&name);
 
         if let Some(state) = config.get("state").and_then(|v| v.as_str()) {
@@ -65,16 +64,14 @@ impl RpcSession {
             }
         }
 
-        // Map config type to ActivityType enum
         activity = activity.set_activity_type(match activity_type {
-            "STREAMING" => ActivityType::Playing, // fallback (Streaming not in this crate)
+            "STREAMING" => ActivityType::Playing,
             "LISTENING" => ActivityType::Listening,
             "WATCHING" => ActivityType::Watching,
             "COMPETING" => ActivityType::Competing,
             _ => ActivityType::Playing,
         });
 
-        // Images — CORRECT API: .large_image(url) takes an argument!
         let large_image = config
             .get("largeImage")
             .and_then(|v| v.as_str())
@@ -89,29 +86,28 @@ impl RpcSession {
             let mut assets = Assets::new();
 
             if !large_image.is_empty() {
-                assets = assets.large_image(large_image); // ← ARGUMENT PASS KARO
+                assets = assets.set_large_image(large_image);
             }
 
             if let Some(large_text) = config.get("largeText").and_then(|v| v.as_str()) {
                 if !large_text.is_empty() {
-                    assets = assets.large_text(large_text); // ← ARGUMENT PASS KARO
+                    assets = assets.set_large_text(large_text);
                 }
             }
 
             if !small_image.is_empty() {
-                assets = assets.small_image(small_image); // ← ARGUMENT PASS KARO
+                assets = assets.set_small_image(small_image);
             }
 
             if let Some(small_text) = config.get("smallText").and_then(|v| v.as_str()) {
                 if !small_text.is_empty() {
-                    assets = assets.small_text(small_text); // ← ARGUMENT PASS KARO
+                    assets = assets.set_small_text(small_text);
                 }
             }
 
             activity = activity.set_assets(assets);
         }
 
-        // Timer — CORRECT API: .start(now_ms) takes an argument (i64)
         if config
             .get("startTimestamp")
             .and_then(|v| v.as_bool())
@@ -122,10 +118,9 @@ impl RpcSession {
                 .unwrap()
                 .as_millis() as i64;
 
-            activity = activity.timestamps(Timestamps::new().start(now_ms)); // ← ARGUMENT PASS KARO
+            activity = activity.set_timestamps(Timestamps::new().set_start(now_ms));
         }
 
-        // Set activity
         self.client
             .set_activity(activity)
             .map_err(|e| format!("set_activity error: {}", e))?;
